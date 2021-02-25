@@ -4,7 +4,7 @@ import os
 import PIL.Image
 
 
-def image_align(src_file, dst_file, face_landmarks, output_size=1024, transform_size=4096, enable_padding=True):
+def image_align(src_file, face_landmarks, output_size=1024, transform_size=4096, enable_padding=True):
         # Align function from FFHQ dataset pre-processing step
         # https://github.com/NVlabs/ffhq-dataset/blob/master/download_ffhq.py
 
@@ -81,4 +81,4 @@ def image_align(src_file, dst_file, face_landmarks, output_size=1024, transform_
             img = img.resize((output_size, output_size), PIL.Image.ANTIALIAS)
 
         # Save aligned image.
-        img.save(dst_file, 'PNG')
+        return img
