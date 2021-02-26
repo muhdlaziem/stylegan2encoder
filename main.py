@@ -10,8 +10,10 @@ import base64
 import numpy as np
 from utils import load_model, align_images, move_and_show, project_image    
 import hashlib
+import dnnlib.tflib as tflib
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 
+tflib.init_tf()
 print('Loading Models...')
 proj, generator, landmarks_detector = load_model()
 fatness_direction = np.load('directions/fatness_direction.npy')
