@@ -8,14 +8,14 @@ from PIL import  Image
 from io import  BytesIO
 import base64
 import numpy as np
-from utils import load_model, align_images, move_and_show, project_image    
-
+# from utils import load_model, align_images, move_and_show, project_image    
+import hashlib
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 
-print('Loading Models...')
-proj, generator, landmarks_detector = load_model()
-fatness_direction = np.load('directions/fatness_direction.npy')
-print('Models Loaded...')
+# print('Loading Models...')
+# proj, generator, landmarks_detector = load_model()
+# fatness_direction = np.load('directions/fatness_direction.npy')
+# print('Models Loaded...')
 
 def allowed_file(filename):
 	return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -44,19 +44,23 @@ def upload_image():
         return redirect(request.url)
         
     if file and allowed_file(file.filename):
-        # img = Image.open(BytesIO(file.read()))
-        im = align_images(BytesIO(file.read()), landmarks_detector)
-        temp_folder = hashlib.md5(im[0].tobytes()).hexdigest()
-        latent = project_image(proj, im[0], tmp_dir=temp_folder)
+        buf = file.read()
+        hashed = hashlib.md5(buf).hexdigest()
+        filename = os.path.join(app.config['UPLOAD_FOLDER'],f'{hashed}_{secure_filename(file.filename)}')
+        print(f'Hash Value: {hashed}, {filename}')
+        img = Image.open(BytesIO(buf))
+        img.save(filename)
+        flash('Aligning Your Image')
+        im = align_images(filename, landmarks_detector)
+        flash('Projecting your image to latent space')
+        latent = project_image(proj, im[0], tmp_dir=hashed)
         flash('Image successfully encoded and displayed below')
 
-        yield render_template('home.html', image="data:image/png;base64," + image_to_base64(generate_image(latent, generator)))
-
-
+        # yield render_template('home.html', image="data:image/png;base64," + )
         transform = move_and_show(latent, fatness_direction, 0.5, generator)
         flash('Image successfully transformed and displayed below')
 
-        return render_template('home.html', result="data:image/png;base64," + image_to_base64(transform))
+        return render_template('home.html', result="data:image/png;base64," + image_to_base64(generate_image(latent, generator)), image="data:image/png;base64," + image_to_base64(transform))
     else:
         flash('Allowed image types are -> png, jpg, jpeg, gif')
         return redirect(request.url)
@@ -64,4 +68,4 @@ def upload_image():
 
 
 if __name__ == "__main__":
-    app.run(port=8080,debug=True)
+    app.run(port=80,debug=True)
