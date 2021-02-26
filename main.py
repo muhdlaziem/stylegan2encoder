@@ -8,14 +8,14 @@ from PIL import  Image
 from io import  BytesIO
 import base64
 import numpy as np
-# from utils import load_model, align_images, move_and_show, project_image    
+from utils import load_model, align_images, move_and_show, project_image    
 import hashlib
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 
-# print('Loading Models...')
-# proj, generator, landmarks_detector = load_model()
-# fatness_direction = np.load('directions/fatness_direction.npy')
-# print('Models Loaded...')
+print('Loading Models...')
+proj, generator, landmarks_detector = load_model()
+fatness_direction = np.load('directions/fatness_direction.npy')
+print('Models Loaded...')
 
 def allowed_file(filename):
 	return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
