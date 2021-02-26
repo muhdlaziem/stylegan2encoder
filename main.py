@@ -14,7 +14,7 @@ ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 
 print('Loading Models...')
 proj, generator, landmarks_detector = load_model()
-fatness_direction = np.load('stylegan2encoder/directions/fatness_direction.npy')
+fatness_direction = np.load('directions/fatness_direction.npy')
 print('Models Loaded...')
 
 def allowed_file(filename):
