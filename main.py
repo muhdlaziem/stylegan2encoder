@@ -17,6 +17,7 @@ import projector
 from encoder.generator_model import Generator
 import bz2
 from ffhq_dataset.landmarks_detector import LandmarksDetector
+from keras.utils import get_file
 
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 

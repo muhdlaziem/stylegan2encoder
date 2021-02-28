@@ -2,7 +2,6 @@ import requests
 from io import BytesIO
 import os
 import sys
-from keras.utils import get_file
 from ffhq_dataset.face_alignment import image_align
 
 import shutil
