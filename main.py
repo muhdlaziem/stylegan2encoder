@@ -8,11 +8,53 @@ from PIL import  Image
 from io import  BytesIO
 import base64
 import numpy as np
-from utils import load_model, align_images, move_and_show, project_image    
+from utils import align_images, move_and_show, project_image, generate_image
 import hashlib
+import dnnlib
 import dnnlib.tflib as tflib
+import pretrained_networks
+import projector
+from encoder.generator_model import Generator
+import bz2
+from ffhq_dataset.landmarks_detector import LandmarksDetector
+
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 
+
+def unpack_bz2(src_path):
+  data = bz2.BZ2File(src_path).read()
+  dst_path = src_path[:-4]
+  with open(dst_path, 'wb') as fp:
+      fp.write(data)
+  return dst_path
+
+def load_model():
+    global proj, generator, landmarks_detector
+    print('Loading Generator...')
+    _G, _D, Gs = pretrained_networks.load_networks('gdrive:networks/stylegan2-ffhq-config-f.pkl')
+    proj = projector.Projector(
+        vgg16_pkl             = 'https://drive.google.com/uc?id=1hPF2dybG3z-s5OYpyiWjePUayutYkpRO',
+        num_steps             = 1000,
+        initial_learning_rate = 0.1,
+        initial_noise_factor  = 0.05,
+        verbose               = False
+    )
+    proj.set_network(Gs)
+
+    generator = Generator(Gs, batch_size=1, randomize_noise=False)
+
+    print('Loading Landmarks Detector...')
+    LANDMARKS_MODEL_URL = 'http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2'
+
+    landmarks_model_path = unpack_bz2(get_file('shape_predictor_68_face_landmarks.dat.bz2',
+                                                LANDMARKS_MODEL_URL, cache_subdir='temp'))
+    landmarks_detector = LandmarksDetector(landmarks_model_path)
+
+
+print('Loading Models...')
+load_model()
+fatness_direction = np.load('directions/fatness_direction.npy')
+print('Models Loaded...')
 
 def allowed_file(filename):
 	return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -27,14 +69,7 @@ def image_to_base64(img):
 
 @app.route('/')
 def upload_form():
-    global proj, generator, landmarks_detector
-    # tflib.init_tf()
-    print('Loading Models...')
-    proj, generator, landmarks_detector = load_model()
-    fatness_direction = np.load('directions/fatness_direction.npy')
-    print('Models Loaded...')
-
-    return render_template('home.html')
+	return render_template('home.html')
 
 @app.route('/', methods=['POST'])
 def upload_image():

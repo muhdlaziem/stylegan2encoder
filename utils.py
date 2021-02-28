@@ -2,33 +2,22 @@ import requests
 from io import BytesIO
 import os
 import sys
-import bz2
 from keras.utils import get_file
 from ffhq_dataset.face_alignment import image_align
-from ffhq_dataset.landmarks_detector import LandmarksDetector
 
 import shutil
 import numpy as np
 
 import dnnlib
 import dnnlib.tflib as tflib
-import pretrained_networks
-import projector
 import dataset_tool
 from training import dataset
 from training import misc
 
 import PIL.Image
-from encoder.generator_model import Generator
 import pickle
 import hashlib
 
-def unpack_bz2(src_path):
-  data = bz2.BZ2File(src_path).read()
-  dst_path = src_path[:-4]
-  with open(dst_path, 'wb') as fp:
-      fp.write(data)
-  return dst_path
 
 
 def align_images(image_path, landmarks_detector):
@@ -87,29 +76,6 @@ def project_image(proj, src_file, tmp_dir='.stylegan2-tmp', video=False):
   shutil.rmtree(tmp_dir)
   return proj.get_dlatents()[0]
 
-
-def load_model():
-  print('Loading Generator...')
-  _G, _D, Gs = pretrained_networks.load_networks('gdrive:networks/stylegan2-ffhq-config-f.pkl')
-  proj = projector.Projector(
-      vgg16_pkl             = 'https://drive.google.com/uc?id=1hPF2dybG3z-s5OYpyiWjePUayutYkpRO',
-      num_steps             = 1000,
-      initial_learning_rate = 0.1,
-      initial_noise_factor  = 0.05,
-      verbose               = False
-  )
-  proj.set_network(Gs)
-
-  generator = Generator(Gs, batch_size=1, randomize_noise=False)
-
-  print('Loading Landmarks Detector...')
-  LANDMARKS_MODEL_URL = 'http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2'
-
-  landmarks_model_path = unpack_bz2(get_file('shape_predictor_68_face_landmarks.dat.bz2',
-                                              LANDMARKS_MODEL_URL, cache_subdir='temp'))
-  landmarks_detector = LandmarksDetector(landmarks_model_path)
-  
-  return proj, generator, landmarks_detector 
 
 def generate_image(latent_vector, generator):
     latent_vector = latent_vector.reshape((1, 18, 512))
