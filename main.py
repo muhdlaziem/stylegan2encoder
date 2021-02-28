@@ -13,11 +13,6 @@ import hashlib
 import dnnlib.tflib as tflib
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 
-tflib.init_tf()
-print('Loading Models...')
-proj, generator, landmarks_detector = load_model()
-fatness_direction = np.load('directions/fatness_direction.npy')
-print('Models Loaded...')
 
 def allowed_file(filename):
 	return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -32,7 +27,14 @@ def image_to_base64(img):
 
 @app.route('/')
 def upload_form():
-	return render_template('home.html')
+    global proj, generator, landmarks_detector
+    # tflib.init_tf()
+    print('Loading Models...')
+    proj, generator, landmarks_detector = load_model()
+    fatness_direction = np.load('directions/fatness_direction.npy')
+    print('Models Loaded...')
+
+    return render_template('home.html')
 
 @app.route('/', methods=['POST'])
 def upload_image():
