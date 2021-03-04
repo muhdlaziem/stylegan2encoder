@@ -161,7 +161,7 @@ def main(args):
     def upload_form():
         return render_template('home.html')
 
-    @app.route('/', methods=['POST'])
+    @app.route('/predict', methods=['POST'])
     def upload_image():
         if 'file' not in request.files:
             flash('No file part')
