@@ -150,7 +150,11 @@ def main(args):
     fatness_direction = np.load('directions/fatness_direction.npy')
     print('Models Loaded...')
 
+    UPLOAD_FOLDER = 'static/uploads/'
+
     app = Flask(__name__)
+    app.secret_key = "secret key"
+    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
     @app.route('/')
