@@ -201,7 +201,7 @@ def main(args):
         transformed_image = move_and_show(latent, fatness_direction, 0.5, generator)
 
         return jsonify({
-            'status':'OK'
+            'status':'OK',
             'original_image': image_to_base64(original_image),
             'transformed_image' : image_to_base64(transformed_image)
         })
