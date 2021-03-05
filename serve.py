@@ -179,7 +179,7 @@ def main(args):
         img = PIL.Image.open(BytesIO(decoded))
         img.save(path)
         print('Aligning Your Image')
-        im = align_images(filename, landmarks_detector)
+        im = align_images(path, landmarks_detector)
         print('Projecting your image to latent space')
         latent = project_image(proj, im[0], tmp_dir=hashed)
         np.save(f'{filename}.npy', latent)
