@@ -1,6 +1,6 @@
 import argparse
 
-from flask import Flask, flash, request, redirect, url_for, render_template
+from flask import Flask, flash, request, redirect, url_for, render_template, jsonify
 from gevent.pywsgi import WSGIServer
 import numpy as np
 from configparser import ConfigParser
@@ -28,6 +28,7 @@ import projector
 from encoder.generator_model import Generator
 from ffhq_dataset.landmarks_detector import LandmarksDetector
 import base64
+import time
 
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 
@@ -157,42 +158,53 @@ def main(args):
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
-    @app.route('/')
-    def upload_form():
-        return render_template('home.html')
+    # @app.route('/')
+    # def upload_form():
+    #     return render_template('home.html')
 
-    @app.route('/predict', methods=['POST'])
-    def upload_image():
-        if 'file' not in request.files:
-            flash('No file part')
-            return redirect(request.url)
-        file = request.files['file']
+    @app.route('/projection', methods=['POST'])
+    def projection():
+        start_time = time.time()
+
+        message = request.get_json(force=True)
+        encoded = message['image']
+        decoded = base64.b64decode(encoded)
+
+        hashed = hashlib.md5(decoded).hexdigest()
+        filename = f'{hashed}'
+
+        path = os.path.join(app.config['UPLOAD_FOLDER'],f'{filename}.png')
+        print(f'Hash Value: {hashed}, {path}')
         
-        if file.filename == '':
-            flash('No image selected for uploading')
-            return redirect(request.url)
-            
-        if file and allowed_file(file.filename):
-            buf = file.read()
-            hashed = hashlib.md5(buf).hexdigest()
-            filename = os.path.join(app.config['UPLOAD_FOLDER'],f'{hashed}_{secure_filename(file.filename)}')
-            print(f'Hash Value: {hashed}, {filename}')
-            img = PIL.Image.open(BytesIO(buf))
-            img.save(filename)
-            flash('Aligning Your Image')
-            im = align_images(filename, landmarks_detector)
-            flash('Projecting your image to latent space')
-            latent = project_image(proj, im[0], tmp_dir=hashed)
-            flash('Image successfully encoded and displayed below')
+        img = PIL.Image.open(BytesIO(decoded))
+        img.save(path)
+        print('Aligning Your Image')
+        im = align_images(filename, landmarks_detector)
+        print('Projecting your image to latent space')
+        latent = project_image(proj, im[0], tmp_dir=hashed)
+        np.save(f'{filename}.npy', latent)
+        print('Image successfully encoded and displayed below')
 
-            transform = move_and_show(latent, fatness_direction, 0.5, generator)
-            flash('Image successfully transformed and displayed below')
+        return jsonify({
+            'status': 'OK',
+            'id': hashed,
+            'timetaken': '%.1f s' % (time.time() - start_time)
+        })
 
-            return render_template('home.html', result="data:image/png;base64," + image_to_base64(generate_image(latent, generator)), image="data:image/png;base64," + image_to_base64(transform))
-        else:
-            flash('Allowed image types are -> png, jpg, jpeg, gif')
-            return redirect(request.url)
+    @app.route('/transform', methods=['POST'])
+    def transform():
+        message = request.get_json(force=True)
+        id = message['id']
+        path = os.path.join(app.config['UPLOAD_FOLDER'],f'{id}.npy')
+        latent = np.load(path)
+        original_image = generate_image(latent, generator)
+        transformed_image = move_and_show(latent, fatness_direction, 0.5, generator)
 
+        return jsonify({
+            'status':'OK'
+            'original_image': image_to_base64(original_image),
+            'transformed_image' : image_to_base64(transformed_image)
+        })
 
     host = config['server'].get('host')
     port = int(config['server'].get('port'))
