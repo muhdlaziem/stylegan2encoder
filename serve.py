@@ -182,7 +182,8 @@ def main(args):
         im = align_images(path, landmarks_detector)
         print('Projecting your image to latent space')
         latent = project_image(proj, im[0], tmp_dir=hashed)
-        np.save(f'{filename}.npy', latent)
+        path_npy = os.path.join(app.config['UPLOAD_FOLDER'],f'{filename}.npy')
+        np.save(path_npy, latent)
         print('Image successfully encoded and displayed below')
 
         return jsonify({
