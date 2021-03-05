@@ -195,11 +195,13 @@ def main(args):
     def transform():
         message = request.get_json(force=True)
         id = message['id']
+        coeff = float(message['coeff'])
         path = os.path.join(app.config['UPLOAD_FOLDER'],f'{id}.npy')
         latent = np.load(path)
+        print(f"Generating images for {id}....")
         original_image = generate_image(latent, generator)
-        transformed_image = move_and_show(latent, fatness_direction, 0.5, generator)
-
+        transformed_image = move_and_show(latent, fatness_direction, coeff, generator)
+        print(f"Done Generating images for {id}....")
         return jsonify({
             'status':'OK',
             'original_image': image_to_base64(original_image),
