@@ -24,7 +24,7 @@ def test_transform(host, id, coeff):
 
 
 def test_encode(host, b64image):
-    url = host + "transform"
+    url = host + "projection"
     encode = {'image' : b64image}
     x = requests.post(url, json = encode)
     print(x.text)

@@ -32,7 +32,7 @@ import time
 
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 
-def project_image(proj, src_file, tmp_dir='.stylegan2-tmp', video=False):
+def project_image(proj, src_file, filename, tmp_dir='.stylegan2-tmp', video=False):
 
     data_dir = '%s/dataset' % tmp_dir
     if os.path.exists(data_dir):
@@ -65,7 +65,7 @@ def project_image(proj, src_file, tmp_dir='.stylegan2-tmp', video=False):
 
     # os.makedirs(dst_dir, exist_ok=True)
     # filename = os.path.join(dst_dir, os.path.basename(src_file)[:-4] + '.png')
-    # misc.save_image_grid(proj.get_images(), filename, drange=[-1,1])
+    misc.save_image_grid(proj.get_images(), filename, drange=[-1,1])
     # filename = os.path.join(dst_dir, os.path.basename(src_file)[:-4] + '.npy')
     # np.save(filename, proj.get_dlatents()[0])
     shutil.rmtree(tmp_dir)
@@ -181,7 +181,7 @@ def main(args):
         print('Aligning Your Image')
         im = align_images(path, landmarks_detector)
         print('Projecting your image to latent space')
-        latent = project_image(proj, im[0], tmp_dir=hashed)
+        latent = project_image(proj, im[0], path, tmp_dir=hashed)
         path_npy = os.path.join(app.config['UPLOAD_FOLDER'],f'{filename}.npy')
         np.save(path_npy, latent)
         print('Image successfully encoded and displayed below')
@@ -200,7 +200,7 @@ def main(args):
         path = os.path.join(app.config['UPLOAD_FOLDER'],f'{id}.npy')
         latent = np.load(path)
         print(f"Generating images for {id}....")
-        original_image = generate_image(latent, generator)
+        original_image = image_to_base64(PIL.Image.open(os.path.join(app.config['UPLOAD_FOLDER'],f'{id}.png')))
         transformed_image = move_and_show(latent, fatness_direction, coeff, generator)
         print(f"Done Generating images for {id}....")
         return jsonify({
