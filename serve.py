@@ -201,6 +201,7 @@ def main(args):
         latent = np.load(path)
         print(f"Generating images for {id}....")
         ori_img = PIL.Image.open(os.path.join(app.config['UPLOAD_FOLDER'],f'{id}.png'))
+        print(ori_img, ori_img.size)
         original_image = image_to_base64(ori_img)
         transformed_image = move_and_show(latent, fatness_direction, coeff, generator)
         print(f"Done Generating images for {id}....")
