@@ -225,7 +225,7 @@ class TransformRpc:
 
                 latent = np.load(path)
                 logging.info(f"Generating images for {uuid}....")
-                original_image = image_to_base64(PIL.Image.open(os.path.join(UPLOAD_FOLDER,f'{id}.png')))
+                original_image = image_to_base64(PIL.Image.open(os.path.join(self.UPLOAD_FOLDER,f'{id}.png')))
                 transformed_image = move_and_show(latent, self.fatness_direction, coeff, self.generator)
                 logging.info(f"Done Generating images for {uuid}....")
 

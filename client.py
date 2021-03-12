@@ -8,7 +8,7 @@ import logging
 import os
 import pika
 import uuid
-from Pillow import Image
+from PIL import Image
 from io import BytesIO
 
 class FatToThinClient:
