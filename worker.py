@@ -167,7 +167,7 @@ class FatToThinRpc:
         #     routing_key=properties.reply_to,
         #     body=res
         # )
-        # channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+        channel.basic_ack(delivery_tag=method_frame.delivery_tag)
 
         logging.info('RPC Server request finished')
 

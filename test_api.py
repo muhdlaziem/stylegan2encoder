@@ -18,7 +18,6 @@ def test_transform(host, id, coeff):
     transform = {'id': id, 'coeff' : coeff}
     x = requests.post(url, json = transform)
     data = json.loads(x.text)
-    print(data)
     decoded = base64.b64decode(data['transformed_image'])
     img = PIL.Image.open(BytesIO(decoded))
     img.show()
