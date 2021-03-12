@@ -75,11 +75,11 @@ def main(args):
 
         message = request.get_json(force=True)
         encoded = message['image']
-        uuid = str(uuid.uuid4())
+        file_id = str(uuid.uuid4())
         req = json.dumps({
             'method': 'projection',
             'image' : encoded,
-            'id' : uuid
+            'id' : file_id
         })
         
         connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
@@ -96,7 +96,7 @@ def main(args):
         connection.close()
         return jsonify({
             'status': 'OK',
-            'id': uuid,
+            'id': file_id,
         })
 
     @app.route('/transform', methods=['POST'])
