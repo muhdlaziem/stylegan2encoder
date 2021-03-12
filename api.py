@@ -84,7 +84,7 @@ def main(args):
         
         connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
         channel = connection.channel()
-        channel.queue_declare(queue=config['server'].get('queue_name'), durable=True)
+        channel.queue_declare(queue='', exclusive=True)
         channel.basic_publish(
             exchange='',
             routing_key=config['server'].get('queue_name'),
