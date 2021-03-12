@@ -52,12 +52,12 @@ def project_image(proj, src_file, filename, tmp_dir='.stylegan2-tmp', video=Fals
         video_dir = '%s/video' % tmp_dir
         os.makedirs(video_dir, exist_ok=True)
     while proj.get_cur_step() < proj.num_steps:
-        logging.info('\r%d / %d ... ' % (proj.get_cur_step(), proj.num_steps), end='', flush=True)
+        print('\r%d / %d ... ' % (proj.get_cur_step(), proj.num_steps), end='', flush=True)
         proj.step()
         if video:
             filename = '%s/%08d.png' % (video_dir, proj.get_cur_step())
             misc.save_image_grid(proj.get_images(), filename, drange=[-1,1])
-    logging.info('\r%-30s\r' % '', end='', flush=True)
+    print('\r%-30s\r' % '', end='', flush=True)
 
    
     misc.save_image_grid(proj.get_images(), filename, drange=[-1,1])
