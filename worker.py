@@ -107,8 +107,8 @@ def unpack_bz2(src_path):
       fp.write(data)
   return dst_path
 
-def load_model():
-    print('Loading Generator...')
+def Projection_model():
+    print('Loading Projection_model...')
     _G, _D, Gs = pretrained_networks.load_networks('gdrive:networks/stylegan2-ffhq-config-f.pkl')
     proj = projector.Projector(
         vgg16_pkl             = 'https://drive.google.com/uc?id=1hPF2dybG3z-s5OYpyiWjePUayutYkpRO',
@@ -119,8 +119,6 @@ def load_model():
     )
     proj.set_network(Gs)
 
-    generator = Generator(Gs, batch_size=1, randomize_noise=False)
-
     print('Loading Landmarks Detector...')
     LANDMARKS_MODEL_URL = 'http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2'
 
@@ -128,18 +126,23 @@ def load_model():
                                                 LANDMARKS_MODEL_URL, cache_subdir='temp'))
     landmarks_detector = LandmarksDetector(landmarks_model_path)
 
-    return  proj, generator, landmarks_detector
+    return  proj, landmarks_detector
 
+def Generator_model():
+    print('Loading Generator...')
+    _G, _D, Gs = pretrained_networks.load_networks('gdrive:networks/stylegan2-ffhq-config-f.pkl')
+    generator = Generator(Gs, batch_size=1, randomize_noise=False)
+
+    return generator
 
 class ProjectionRpc:
-    def __init__(self, config, proj, landmarks_detector):
+    def __init__(self, config):
         super().__init__()
-        self.proj = proj
-        self.landmarks_detector = landmarks_detector
+        self.proj, self.landmarks_detector = Projection_model()
         self.UPLOAD_FOLDER = config['server'].get('upload_folder')
 
     def on_rx_rpc_request(self, channel, method_frame, properties, body):
-        logging.debug('RPC Server processing request: %s', body)
+        logging.debug('RPCProjection Server processing request: %s', body)
 
         res_props = pika.BasicProperties(correlation_id=properties.correlation_id)
 
@@ -177,14 +180,14 @@ class ProjectionRpc:
             else:
                 logging.warning("Received unknown method: %s", req['method'])
         except Exception as e :
-            logging.warning('RPC Server failed to process request %s', str(e))
+            logging.warning('RPCProjection Server failed to process request %s', str(e))
 
             res = json.dumps({
                 'status' : 'Problem Occured',
                 'error': str(e)
             })
 
-        logging.info('Publishing response: %s', res)
+        logging.info('RPCProjection Publishing response: %s', res)
 
         channel.basic_publish(
             exchange='',
@@ -194,13 +197,13 @@ class ProjectionRpc:
         )
         channel.basic_ack(delivery_tag=method_frame.delivery_tag)
 
-        logging.info('RPC Server request finished')
+        logging.info('RPCProjection Server request finished')
 
 
 class TransformRpc:
-    def __init__(self, config, generator):
+    def __init__(self, config):
         super().__init__()
-        self.generator = generator
+        self.generator = Generator_model()
         self.UPLOAD_FOLDER = config['server'].get('upload_folder')
         self.fatness_direction = np.load(config['server'].get('fatness_direction'))
         
@@ -241,7 +244,7 @@ class TransformRpc:
                 'error': str(e)
             })
 
-        logging.info('Publishing response: %s', res)
+        logging.info('RPCTransform Publishing response: %s', res)
 
         channel.basic_publish(
             exchange='',
@@ -255,13 +258,13 @@ class TransformRpc:
 
 
 
-def ProjectionConsumer(args, proj, landmarks_detector):
+def ProjectionConsumer(args):
 
     config = ConfigParser()
     config.read(args.config)
 
     try:
-        server = ProjectionRpc(config, proj, landmarks_detector)
+        server = ProjectionRpc(config)
         parameters =  pika.ConnectionParameters(heartbeat=300)
         with pika.BlockingConnection(parameters) as conn:
             channel = conn.channel()
@@ -276,22 +279,22 @@ def ProjectionConsumer(args, proj, landmarks_detector):
                 server.on_rx_rpc_request
             )
 
-            logging.info('RPC Server ready.')
+            logging.info('RPCProjection Server ready.')
             channel.start_consuming()
             
     except Exception as e:
         logging.warning('Caught error:')
         logging.warning(e)
 
-    logging.info('RPC Server shutting down')
+    logging.info('RPCProjection Server shutting down')
 
-def TransformConsumer(args, generator):
+def TransformConsumer(args):
 
     config = ConfigParser()
     config.read(args.config)
 
     try:
-        server = TransformRpc(config, generator)
+        server = TransformRpc(config)
         parameters =  pika.ConnectionParameters(heartbeat=300)
         with pika.BlockingConnection(parameters) as conn:
             channel = conn.channel()
@@ -306,29 +309,26 @@ def TransformConsumer(args, generator):
                 server.on_rx_rpc_request
             )
 
-            logging.info('RPC Server ready.')
+            logging.info('RPCTransform Server ready.')
             channel.start_consuming()
             
     except Exception as e:
         logging.warning('Caught error:')
         logging.warning(e)
 
-    logging.info('RPC Server shutting down')
+    logging.info('RPCTransform Server shutting down')
 
 class Thread (threading.Thread):
-    def __init__(self, args, method, proj=None, landmarks_detector=None, generator=None):
+    def __init__(self, args, method):
         threading.Thread.__init__(self)
         self.args = args
         self.method = method
-        self.proj = proj
-        self.landmarks_detector =landmarks_detector
-        self.generator = generator
 
     def run(self):
         if self.method == "Projection":
-            ProjectionConsumer(self.args, self.proj, self.landmarks_detector)
+            ProjectionConsumer(self.args)
         if self.method == "Transform":
-            TransformConsumer(self.args, self.generator)
+            TransformConsumer(self.args)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -337,12 +337,11 @@ if __name__ == '__main__':
     logging.getLogger().setLevel('INFO')
     logging.info('RPC Server starting...')
 
-    proj, generator, landmarks_detector = load_model()
     
     threads = []
 
-    Projection = Thread(parser.parse_args(), "Projection", proj=proj, landmarks_detector=landmarks_detector)
-    Transform = Thread(parser.parse_args(), "Transform", generator=generator)
+    Projection = Thread(parser.parse_args(), "Projection")
+    Transform = Thread(parser.parse_args(), "Transform")
 
     Projection.start()
     Transform.start()
