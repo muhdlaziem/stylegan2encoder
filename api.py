@@ -104,7 +104,7 @@ def main(args):
         message = request.get_json(force=True)
         id = message['id']
         coeff = float(message['coeff'])
-        path = os.path.join('UPLOAD_FOLDER',f'{id}.npy')
+        path = os.path.join(UPLOAD_FOLDER,f'{id}.npy')
 
         try:
 
