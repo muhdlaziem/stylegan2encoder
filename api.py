@@ -91,7 +91,7 @@ def main(args):
             body=req,
             properties=pika.BasicProperties(
                 delivery_mode=2,  # make message persistent
-                correlation_id=uuid,
+                correlation_id=file_id,
             ))
         connection.close()
         return jsonify({
