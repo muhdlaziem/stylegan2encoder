@@ -106,7 +106,7 @@ def main(args):
         coeff = float(message['coeff'])
         path = os.path.join('UPLOAD_FOLDER',f'{id}.npy')
 
-        if(os.path.isfile(path)):
+        try:
 
             latent = np.load(path)
             print(f"Generating images for {id}....")
@@ -118,9 +118,10 @@ def main(args):
                 'original_image': original_image,
                 'transformed_image' : image_to_base64(transformed_image)
             })
-        else:
+        except Exception as e:
             return jsonify({
-                'status':'ID Not Found'
+                'status':'error',
+                'error': str(e)
             })
 
     host = config['server'].get('host')
