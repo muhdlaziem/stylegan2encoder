@@ -98,6 +98,6 @@ if __name__ == '__main__':
     parser.add_argument('--timeout', default=350, type=str)
     parser.add_argument('--input', type=str)
     parser.add_argument('--username', default='laziem', type=str)
-    parser.add_argument('--password', default='laziem', type=int)
+    parser.add_argument('--password', default='laziem', type=str)
 
     main(parser.parse_args())

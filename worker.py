@@ -148,7 +148,7 @@ class FatToThinRpc:
 
                 res = json.dumps({
                     'status' : 'OK',
-                    'id': req[id]
+                    'id': req['id']
                 })
             else:
                 logging.warning("Received unknown method: %s", req['method'])
