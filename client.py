@@ -11,13 +11,15 @@ import uuid
 
 
 class FatToThinClient:
-    def __init__(self, host, port, queue_name, timeout):
+    def __init__(self, host, port, queue_name, timeout, username, password):
         self.queue_name = queue_name
         self.response = None
         self.corr_id = None
         self.timeout = timeout
 
-        params = pika.ConnectionParameters(host=host, port=port)
+        credentials = pika.PlainCredentials(username, password)
+        params = pika.ConnectionParameters(credentials=credentials)
+        # parameters = pika.URLParameters('amqp://laziem:laziem@localhost:5672/%2F')
         self.connection = pika.BlockingConnection(params)
         self.channel = self.connection.channel()
 
@@ -49,9 +51,9 @@ class FatToThinClient:
     def projection(self, img_path):
         self.response = None
 
-        
-        logging.info('Sending request for file %s', img_path)
         self.corr_id = str(uuid.uuid4())
+        
+        logging.info('Sending request for file %s : %s ', img_path, self.corr_id)
         with open(img_path, 'rb') as f:
             encoded = json.dumps({
                 'method': 'projection',
@@ -72,13 +74,14 @@ def main(args):
             args.host,
             args.port,
             args.queue,
-            args.timeout
+            args.timeout,
+            args.username,
+            args.password
         )
         logging.info('RPC Client connected.')
-        results = rpc_client.predict(args.input)
+        results = rpc_client.projection(args.input)
 
-        for result in results:
-            logging.info('Received Result: %s', result)
+        logging.info('Received Result: %s', results)
 
     except Exception as e:
         logging.warning('Caught error:')
@@ -94,5 +97,7 @@ if __name__ == '__main__':
     parser.add_argument('--queue', default='rpc.ai.FatToThinProjection.queue', type=str)
     parser.add_argument('--timeout', default=350, type=str)
     parser.add_argument('--input', type=str)
+    parser.add_argument('--username', default='laziem', type=str)
+    parser.add_argument('--password', default='laziem', type=int)
 
     main(parser.parse_args())

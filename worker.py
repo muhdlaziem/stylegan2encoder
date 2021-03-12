@@ -147,7 +147,8 @@ class FatToThinRpc:
                 logging.info('Image successfully encoded for %s', req['id'])
 
                 res = json.dumps({
-                    'status' : 'OK'
+                    'status' : 'OK',
+                    'id': req[id]
                 })
             else:
                 logging.warning("Received unknown method: %s", req['method'])
@@ -182,8 +183,8 @@ def main(args):
 
     try:
         server = FatToThinRpc(config)
-
-        with pika.BlockingConnection() as conn:
+        parameters =  pika.ConnectionParameters(heartbeat=300)
+        with pika.BlockingConnection(parameters) as conn:
             channel = conn.channel()
 
             channel.queue_declare(
