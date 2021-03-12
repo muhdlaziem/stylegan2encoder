@@ -95,7 +95,7 @@ if __name__ == '__main__':
     parser.add_argument('--host', default='localhost', type=str)
     parser.add_argument('--port', default=5672, type=int)
     parser.add_argument('--queue', default='rpc.ai.FatToThinProjection.queue', type=str)
-    parser.add_argument('--timeout', default=350, type=str)
+    parser.add_argument('--timeout', default=1000000, type=str)
     parser.add_argument('--input', type=str)
     parser.add_argument('--username', default='laziem', type=str)
     parser.add_argument('--password', default='laziem', type=str)
