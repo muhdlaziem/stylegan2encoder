@@ -159,15 +159,15 @@ class FatToThinRpc:
                 'error': str(e)
             })
 
-        logging.info('Publishing response: %s', res)
+        # logging.info('Publishing response: %s', res)
 
-        channel.basic_publish(
-            exchange='',
-            properties=res_props,
-            routing_key=properties.reply_to,
-            body=res
-        )
-        channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+        # channel.basic_publish(
+        #     exchange='',
+        #     properties=res_props,
+        #     routing_key=properties.reply_to,
+        #     body=res
+        # )
+        # channel.basic_ack(delivery_tag=method_frame.delivery_tag)
 
         logging.info('RPC Server request finished')
 
