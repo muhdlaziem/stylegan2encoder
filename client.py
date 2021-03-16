@@ -49,36 +49,46 @@ class FatToThinClient:
         while self.response is None and time.time() < deadline:
             self.connection.process_data_events()
 
-    def projection(self, img_path):
+    def projection(self, img_path=None, body=None):
         self.response = None
-
-        self.corr_id = str(uuid.uuid4())
-        
-        logging.info('Sending request for file %s : %s ', img_path, self.corr_id)
-        with open(img_path, 'rb') as f:
-            encoded = json.dumps({
-                'method': 'projection',
-                'image': base64.b64encode(f.read()).decode('utf-8'),
-                'id': self.corr_id
-            })
-            self.do_rpc(encoded)
+        if(img_path):
+            self.corr_id = str(uuid.uuid4())
+            
+            logging.info('Sending request for file %s : %s ', img_path, self.corr_id)
+            with open(img_path, 'rb') as f:
+                encoded = json.dumps({
+                    'method': 'projection',
+                    'image': base64.b64encode(f.read()).decode('utf-8'),
+                    'id': self.corr_id
+                })
+                self.do_rpc(encoded)
+        elif(body):
+            data = json.loads(body)
+            logging.info('Sending request for file %s ', data['id'])
+            self.do_rpc(body)
 
         return self.response
     
-    def transform(self, uuid, coeff):
-        self.response = None        
-        logging.info('Sending request for file %s : %s ', uuid, coeff)
-        encoded = json.dumps({
-            'method': 'transform',
-            'id': uuid,
-            'coeff': coeff
-        })
-        self.do_rpc(encoded)
-        data = json.loads(self.response)
-        decoded = base64.b64decode(data['transformed_image'])
-        img = Image.open(BytesIO(decoded))
-        img.show()
-        return data['status']
+    def transform(self, uuid=None, coeff=None, body=None):
+        self.response = None
+        if(body):
+            data = json.loads(body)
+            logging.info('Sending request for file %s : %s ', data['id'], data['coeff'])
+            self.do_rpc(body)
+            return self.response
+        else:    
+            logging.info('Sending request for file %s : %s ', uuid, coeff)
+            encoded = json.dumps({
+                'method': 'transform',
+                'id': uuid,
+                'coeff': coeff
+            })
+            self.do_rpc(encoded)
+            data = json.loads(self.response)
+            decoded = base64.b64decode(data['transformed_image'])
+            img = Image.open(BytesIO(decoded))
+            img.show()
+            return data['status']
 
 
 def main(args):
