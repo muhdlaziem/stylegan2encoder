@@ -60,9 +60,12 @@ def main(args):
     @app.route('/progress/<uuid>', methods=['POST'])
     @cross_origin()
     def progress(uuid):
-        path = os.path.join(UPLOAD_FOLDER, f"{uuid}.json")
-        progress = open(path)
-        return jsonify(json.load(progress))
+        try:
+            path = os.path.join(UPLOAD_FOLDER, f"{uuid}.json")
+            progress = open(path)
+            return jsonify(json.load(progress))
+        except Exception as e:
+            return jsonify({'status':'Processing projection your request','progress':0, 'err': str(e)})
 
     host = config['server'].get('host')
     port = int(config['server'].get('port'))
