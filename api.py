@@ -4,6 +4,8 @@ from gevent.pywsgi import WSGIServer
 from configparser import ConfigParser
 from client import FatToThinClient
 from flask_cors import CORS, cross_origin
+import os
+import json
 
 def main(args):
 
@@ -13,7 +15,8 @@ def main(args):
     app.secret_key = "secret key"
     cors = CORS(app)
     app.config['CORS_HEADERS'] = 'Content-Type'
-
+    UPLOAD_FOLDER = config['server'].get('upload_folder')
+    
     @app.route('/projection', methods=['POST'])
     @cross_origin()
     def projection():
@@ -53,6 +56,13 @@ def main(args):
 
         # print('Received Result: %s', results)
         return results
+    
+    @app.route('/progress/<uuid>', methods=['POST'])
+    @cross_origin()
+    def progress(uuid):
+        path = os.path.join(UPLOAD_FOLDER, f"{uuid}.json")
+        progress = open(path)
+        return jsonify(json.load(progress))
 
     host = config['server'].get('host')
     port = int(config['server'].get('port'))
