@@ -170,8 +170,6 @@ class ProjectionRpc:
                 decoded = base64.b64decode(encoded)
 
                 filename = req['id']
-                with open(os.path.join(self.UPLOAD_FOLDER, f"{filename}.json"), 'w') as fp: 
-                    json.dump({'status':'Processing projection your request','progress':0}, fp)
                 
                 path = os.path.join(self.UPLOAD_FOLDER,f'{filename}.png')
                 logging.info(f'Image Path: {path}')

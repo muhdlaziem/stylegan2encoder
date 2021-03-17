@@ -31,6 +31,8 @@ def main(args):
             'laziem'
         )
         print('RPC Client connected.')
+        with open(os.path.join(UPLOAD_FOLDER, f"{request.json['id']}.json"), 'w') as fp: 
+            json.dump({'status':'Waiting for queue to response','progress':0}, fp)
         results = rpc_client.projection(body=data)
 
         # print('Received Result: %s', results)
@@ -57,7 +59,7 @@ def main(args):
         # print('Received Result: %s', results)
         return results
     
-    @app.route('/progress/<uuid>', methods=['POST'])
+    @app.route('/progress/<uuid>', methods=['GET'])
     @cross_origin()
     def progress(uuid):
         try:
