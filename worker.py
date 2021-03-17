@@ -53,7 +53,16 @@ def image_to_base64(img):
     base64_str = base64.b64encode(byte_data)
     return base64_str.decode()
 
-def project_image(proj, src_file, filename, tmp_dir='.stylegan2-tmp', video=False):
+def save_progress(uuid,mode,status,config):
+    path = os.path.join(config['server'].get('upload_folder'), f"{uuid}.json")
+    with open(path , "r") as jsonFile:
+        data = json.load(jsonFile)
+    data[mode] = status
+
+    with open(path, "w") as jsonFile:
+        json.dump(data, jsonFile)
+
+def project_image(proj, src_file, filename, tmp_dir='.stylegan2-tmp', video=False, config=None, uuid=None):
 
     data_dir = '%s/dataset' % tmp_dir
     if os.path.exists(data_dir):
@@ -75,6 +84,7 @@ def project_image(proj, src_file, filename, tmp_dir='.stylegan2-tmp', video=Fals
         video_dir = '%s/video' % tmp_dir
         os.makedirs(video_dir, exist_ok=True)
     while proj.get_cur_step() < proj.num_steps:
+        save_progress(uuid,'progress',proj.get_cur_step(), config)
         print('\r%d / %d ... ' % (proj.get_cur_step(), proj.num_steps), end='', flush=True)
         proj.step()
         if video:
@@ -101,11 +111,12 @@ def align_images(image_path, landmarks_detector):
     return imgs
 
 def unpack_bz2(src_path):
-  data = bz2.BZ2File(src_path).read()
-  dst_path = src_path[:-4]
-  with open(dst_path, 'wb') as fp:
-      fp.write(data)
-  return dst_path
+    data = bz2.BZ2File(src_path).read()
+    dst_path = src_path[:-4]
+    with open(dst_path, 'wb') as fp:
+        fp.write(data)
+    return dst_path
+
 
 def Projection_model():
     print('Loading Projection_model...')
@@ -140,6 +151,9 @@ class ProjectionRpc:
         super().__init__()
         self.proj, self.landmarks_detector = Projection_model()
         self.UPLOAD_FOLDER = config['server'].get('upload_folder')
+        self.config = config
+
+    
 
     def on_rx_rpc_request(self, channel, method_frame, properties, body):
         logging.debug('RPCProjection Server processing request: %s', body)
@@ -156,18 +170,22 @@ class ProjectionRpc:
                 decoded = base64.b64decode(encoded)
 
                 filename = req['id']
-
+                with open(os.path.join(self.UPLOAD_FOLDER, f"{filename}.json"), 'w') as fp: 
+                    json.dump({'status':'Processing projection your request'}, fp)
+                
                 path = os.path.join(self.UPLOAD_FOLDER,f'{filename}.png')
                 logging.info(f'Image Path: {path}')
                 
                 img = PIL.Image.open(BytesIO(decoded))
                 img.save(path)
 
+                save_progress(filename,'status','Aligning your image', self.config)
                 logging.info('Aligning Image')
                 im = align_images(path, self.landmarks_detector)
 
+                save_progress(filename,'status','Projecting your image to latent space', self.config)
                 logging.info('Projecting image to latent space')
-                latent = project_image(self.proj, im[0], path, tmp_dir=req['id'])
+                latent = project_image(self.proj, im[0], path, tmp_dir=req['id'], config=self.config, uuid=filename)
                 path_npy = os.path.join(self.UPLOAD_FOLDER,f'{filename}.npy')
                 np.save(path_npy, latent)
 
