@@ -170,6 +170,8 @@ class ProjectionRpc:
                 decoded = base64.b64decode(encoded)
 
                 filename = req['id']
+                with open(os.path.join(self.UPLOAD_FOLDER, f"{filename}.json"), 'w') as fp: 
+                    json.dump({'status':'Processing image projection','progress':0}, fp)
                 
                 path = os.path.join(self.UPLOAD_FOLDER,f'{filename}.png')
                 logging.info(f'Image Path: {path}')
@@ -272,6 +274,39 @@ class TransformRpc:
 
         logging.info('RPCTransform Server request finished')
 
+class StatusRpc:
+    def __init__(self, config):
+        super().__init__()
+        self.UPLOAD_FOLDER = config['server'].get('upload_folder')
+        
+    def on_rx_rpc_request(self, channel, method_frame, properties, body):
+        logging.debug('RPCStatus Server processing request: %s', body)
+
+        res_props = pika.BasicProperties(correlation_id=properties.correlation_id)
+
+        try:
+            uuid = body.decode()
+            path = os.path.join(self.UPLOAD_FOLDER, f"{uuid}.json")
+            progress = open(path)
+            res = json.dumps(json.load(progress))
+
+        except Exception as e :
+            logging.warning('RPCTransform Server failed to process request %s', str(e))
+
+            res =  json.dumps({'status':'Processing your projection  request','progress':0, 'err': str(e)})
+
+
+        logging.info('RPCStatus Publishing response: %s', res)
+
+        channel.basic_publish(
+            exchange='',
+            properties=res_props,
+            routing_key=properties.reply_to,
+            body=res
+        )
+        channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+
+        logging.info('RPCStatus Server request finished')
 
 
 def ProjectionConsumer(args):
@@ -334,6 +369,36 @@ def TransformConsumer(args):
 
     logging.info('RPCTransform Server shutting down')
 
+def StatusConsumer(args):
+
+    config = ConfigParser()
+    config.read(args.config)
+
+    try:
+        server = StatusRpc(config)
+        parameters =  pika.ConnectionParameters(heartbeat=300)
+        with pika.BlockingConnection(parameters) as conn:
+            channel = conn.channel()
+
+            channel.queue_declare(
+                queue=config['server'].get('status_queue'), 
+                exclusive=True, 
+                auto_delete=True
+            )
+            channel.basic_consume(
+                config['server'].get('status_queue'),
+                server.on_rx_rpc_request
+            )
+
+            logging.info('RPCStatus Server ready.')
+            channel.start_consuming()
+            
+    except Exception as e:
+        logging.warning('Caught error:')
+        logging.warning(e)
+
+    logging.info('RPCStatus Server shutting down')
+
 class Thread (threading.Thread):
     def __init__(self, args, method):
         threading.Thread.__init__(self)
@@ -345,6 +410,8 @@ class Thread (threading.Thread):
             ProjectionConsumer(self.args)
         if self.method == "Transform":
             TransformConsumer(self.args)
+        if self.method == "Status":
+            StatusConsumer(self.args)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -358,12 +425,17 @@ if __name__ == '__main__':
 
     Projection = Thread(parser.parse_args(), "Projection")
     Transform = Thread(parser.parse_args(), "Transform")
+    Status = Thread(parser.parse_args(), "Status")
+
 
     Projection.start()
     Transform.start()
+    Status.start()
 
     threads.append(Projection)
     threads.append(Transform)
+    threads.append(Status)
+
 
     for t in threads:
         t.join()

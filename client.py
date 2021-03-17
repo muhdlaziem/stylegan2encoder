@@ -89,6 +89,11 @@ class FatToThinClient:
             img = Image.open(BytesIO(decoded))
             img.show()
             return data['status']
+    
+    def status(self, body):
+        self.do_rpc(body)
+        return self.response
+
 
 
 def main(args):
