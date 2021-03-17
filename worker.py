@@ -293,7 +293,7 @@ class StatusRpc:
         except Exception as e :
             logging.warning('RPCTransform Server failed to process request %s', str(e))
 
-            res =  json.dumps({'status':'Processing your projection  request','progress':0, 'err': str(e)})
+            res =  json.dumps({'status':'Waiting for queue to response','progress':0, 'err': str(e)})
 
 
         logging.info('RPCStatus Publishing response: %s', res)

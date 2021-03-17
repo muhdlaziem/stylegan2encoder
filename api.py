@@ -61,12 +61,19 @@ def main(args):
     @app.route('/progress/<uuid>', methods=['GET'])
     @cross_origin()
     def progress(uuid):
-        try:
-            path = os.path.join(UPLOAD_FOLDER, f"{uuid}.json")
-            progress = open(path)
-            return jsonify(json.load(progress))
-        except Exception as e:
-            return jsonify({'status':'Processing projection your request','progress':0, 'err': str(e)})
+        queue = 'rpc.ai.status.queue'
+        rpc_client = FatToThinClient(
+            "localhost",
+            5672,
+            queue,
+            100000,
+            'laziem',
+            'laziem'
+        )
+        print('RPC Client connected.')
+        results = rpc_client.status(body=uuid)
+
+        return results
 
     host = config['server'].get('host')
     port = int(config['server'].get('port'))
