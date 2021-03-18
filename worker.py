@@ -262,7 +262,7 @@ class TransformRpc:
                 'error': str(e)
             })
 
-        logging.info('RPCTransform Publishing response: %s', res)
+        logging.info('RPCTransform Publishing response: %s', res[:50])
 
         channel.basic_publish(
             exchange='',
