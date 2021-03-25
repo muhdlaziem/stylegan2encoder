@@ -30,8 +30,6 @@ from configparser import ConfigParser
 import threading
 
 
-# ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
-# UPLOAD_FOLDER = 'static/uploads/'
 
 def generate_image(latent_vector, generator):
     latent_vector = latent_vector.reshape((1, 18, 512))
@@ -63,6 +61,7 @@ def save_progress(uuid,mode,status,config):
         json.dump(data, jsonFile)
 
 def project_image(proj, src_file, filename, tmp_dir='.stylegan2-tmp', video=False, config=None, uuid=None):
+    UPLOAD_FOLDER = config['server'].get('upload_folder')
 
     data_dir = '%s/dataset' % tmp_dir
     if os.path.exists(data_dir):
@@ -85,6 +84,13 @@ def project_image(proj, src_file, filename, tmp_dir='.stylegan2-tmp', video=Fals
         os.makedirs(video_dir, exist_ok=True)
     while proj.get_cur_step() < proj.num_steps:
         save_progress(uuid,'progress',proj.get_cur_step(), config)
+
+        # save image and latent every 100 steps
+        if (int(proj.get_cur_step()) + 1) % 100 == 0 and int(proj.get_cur_step()) != (proj.num_steps - 1) :
+            misc.save_image_grid(proj.get_images(), filename, drange=[-1,1])
+            path_npy = os.path.join(UPLOAD_FOLDER,f'{filename}.npy')
+            np.save(path_npy, proj.get_dlatents()[0])
+
         print('\r%d / %d ... ' % (proj.get_cur_step(), proj.num_steps), end='', flush=True)
         proj.step()
         if video:
@@ -94,9 +100,11 @@ def project_image(proj, src_file, filename, tmp_dir='.stylegan2-tmp', video=Fals
 
    
     misc.save_image_grid(proj.get_images(), filename, drange=[-1,1])
-    
+
+    path_npy = os.path.join(UPLOAD_FOLDER,f'{filename}.npy')
+    np.save(path_npy, proj.get_dlatents()[0])
+
     shutil.rmtree(tmp_dir)
-    return proj.get_dlatents()[0]
 
 def align_images(image_path, landmarks_detector):
     """
@@ -185,9 +193,8 @@ class ProjectionRpc:
 
                 save_progress(filename,'status','Projecting your image to latent space', self.config)
                 logging.info('Projecting image to latent space')
-                latent = project_image(self.proj, im[0], path, tmp_dir=req['id'], config=self.config, uuid=filename)
-                path_npy = os.path.join(self.UPLOAD_FOLDER,f'{filename}.npy')
-                np.save(path_npy, latent)
+                project_image(self.proj, im[0], path, tmp_dir=req['id'], config=self.config, uuid=filename)
+                
 
                 logging.info('Image successfully encoded for %s', req['id'])
 
