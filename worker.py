@@ -88,7 +88,7 @@ def project_image(proj, src_file, filename, tmp_dir='.stylegan2-tmp', video=Fals
         # save image and latent every 100 steps
         if (int(proj.get_cur_step()) + 1) % 100 == 0 and int(proj.get_cur_step()) != (proj.num_steps - 1) :
             misc.save_image_grid(proj.get_images(), filename, drange=[-1,1])
-            path_npy = os.path.join(UPLOAD_FOLDER,f'{filename}.npy')
+            path_npy = os.path.join(UPLOAD_FOLDER,f'{uuid}.npy')
             np.save(path_npy, proj.get_dlatents()[0])
 
         print('\r%d / %d ... ' % (proj.get_cur_step(), proj.num_steps), end='', flush=True)
@@ -101,7 +101,7 @@ def project_image(proj, src_file, filename, tmp_dir='.stylegan2-tmp', video=Fals
    
     misc.save_image_grid(proj.get_images(), filename, drange=[-1,1])
 
-    path_npy = os.path.join(UPLOAD_FOLDER,f'{filename}.npy')
+    path_npy = os.path.join(UPLOAD_FOLDER,f'{uuid}.npy')
     np.save(path_npy, proj.get_dlatents()[0])
 
     shutil.rmtree(tmp_dir)
