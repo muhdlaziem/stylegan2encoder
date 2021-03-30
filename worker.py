@@ -161,8 +161,6 @@ class ProjectionRpc:
         self.UPLOAD_FOLDER = config['server'].get('upload_folder')
         self.config = config
 
-    
-
     def on_rx_rpc_request(self, channel, method_frame, properties, body):
         logging.debug('RPCProjection Server processing request: %s', body)
 
@@ -172,38 +170,29 @@ class ProjectionRpc:
             req = json.loads(body)
             res = json.dumps({'status': 'empty'})
 
-            if req['method'] == 'projection':
-                logging.info('Processing projection RPC for %s', req['id'])
-                encoded = req['image']
-                decoded = base64.b64decode(encoded)
+            logging.info('Processing projection RPC for %s', req['id'])
+            encoded = req['image']
+            decoded = base64.b64decode(encoded)
 
-                filename = req['id']
-                with open(os.path.join(self.UPLOAD_FOLDER, f"{filename}.json"), 'w') as fp: 
-                    json.dump({'status':'Processing image projection','progress':0}, fp)
-                
-                path = os.path.join(self.UPLOAD_FOLDER,f'{filename}.png')
-                logging.info(f'Image Path: {path}')
-                
-                img = PIL.Image.open(BytesIO(decoded))
-                img.save(path)
+            filename = req['id']
+            with open(os.path.join(self.UPLOAD_FOLDER, f"{filename}.json"), 'w') as fp: 
+                json.dump({'status':'Processing image projection','progress':0}, fp)
+            
+            path = os.path.join(self.UPLOAD_FOLDER,f'{filename}.png')
+            logging.info(f'Image Path: {path}')
+            
+            img = PIL.Image.open(BytesIO(decoded))
+            img.save(path)
 
-                save_progress(filename,'status','Aligning your image', self.config)
-                logging.info('Aligning Image')
-                im = align_images(path, self.landmarks_detector)
+            save_progress(filename,'status','Aligning your image', self.config)
+            logging.info('Aligning Image')
+            im = align_images(path, self.landmarks_detector)
 
-                save_progress(filename,'status','Projecting your image to latent space', self.config)
-                logging.info('Projecting image to latent space')
-                project_image(self.proj, im[0], path, tmp_dir=req['id'], config=self.config, uuid=filename)
-                
+            res = json.dumps({
+                'status' : 'OK',
+                'id': req['id']
+            })
 
-                logging.info('Image successfully encoded for %s', req['id'])
-
-                res = json.dumps({
-                    'status' : 'OK',
-                    'id': req['id']
-                })
-            else:
-                logging.warning("Received unknown method: %s", req['method'])
         except Exception as e :
             logging.warning('RPCProjection Server failed to process request %s', str(e))
 
@@ -221,6 +210,14 @@ class ProjectionRpc:
             body=res
         )
         channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+        try:
+            save_progress(filename,'status','Projecting your image to latent space', self.config)
+            logging.info('Projecting image to latent space')
+            project_image(self.proj, im[0], path, tmp_dir=req['id'], config=self.config, uuid=filename)
+            logging.info('Image successfully encoded for %s', req['id'])
+            
+        except Exception as e:
+            logging.info(f'Error: {str(e)}')
 
         logging.info('RPCProjection Server request finished')
 
